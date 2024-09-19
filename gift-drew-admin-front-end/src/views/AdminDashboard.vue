@@ -1,19 +1,22 @@
 <template>
     <div class="admin-container">
         <div class="header">
-            <h1>Welcome to Admin Page</h1>
+            <h1>Admin Dashboard</h1>
             <button class="logout-button" @click="logout">Logout</button>
         </div>
 
         <div class="admin-dashboard">
-            <h2>Admin Dashboard</h2>
-
             <section>
                 <h3>Add User</h3>
                 <input v-model="newUser.name" placeholder="Name" class="input-field" />
                 <input v-model="newUser.studentId" placeholder="Student ID" class="input-field" />
                 <input v-model="newUser.email" placeholder="Email" class="input-field" />
                 <button @click="addUser" class="action-button">Add User</button>
+            </section>
+
+            <section>
+                <input class="input-field" type="file" @change="handleFileUpload" />
+                <button @click="importUsers" class="action-button">Import Users</button>
             </section>
 
             <section>
@@ -48,6 +51,16 @@
             </section>
 
             <section>
+                <h3>User List</h3>
+                <button @click="getUserList" class="action-button">Get User List</button>
+                <ul class="gift-list">
+                    <li v-for="gift in gifts" :key="gift._id">
+                        {{ gift.title }} - {{ gift.name }}: {{ gift.count }}
+                    </li>
+                </ul>
+            </section>
+
+            <section>
                 <h3>User Lottery Records</h3>
                 <input v-model="userLotteryId" placeholder="Student ID" class="input-field" />
                 <button @click="getUserLotteryRecords" class="action-button">Get Lottery Records</button>
@@ -62,6 +75,8 @@
 </template>
 
 <script>
+import * as XLSX from "xlsx";
+
 export default {
     name: "AdminDashBoard",
     data() {
@@ -89,9 +104,30 @@ export default {
             localStorage.removeItem('isAuthenticated');
             this.$router.push('/login');
         },
+        handleFileUpload(event) {
+          const file = event.target.files[0];
+          if (file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+              const data = new Uint8Array(e.target.result);
+              const workbook = XLSX.read(data, { type: "array" });
+              const sheetName = workbook.SheetNames[0];
+              const worksheet = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+
+              // Transform Excel data into the desired format for users array
+              this.users = worksheet.map((row) => ({
+                name: row["姓名 / Full Name"],
+                studentId: String(row["学号 / Student ID"]),
+                email: row["Email"],
+              }));
+              console.log(this.users); // Check the result in the console
+            };
+            reader.readAsArrayBuffer(file);
+          }
+        },
         async addUser() {
             try {
-                const response = await fetch('/addUser', {
+                const response = await fetch('https://cpu.gift.ibuduan.com/admin/addUser', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(this.newUser),
@@ -106,9 +142,15 @@ export default {
                 alert('Error adding user');
             }
         },
+        async importUsers() {
+          for (const user of this.users) {
+            await this.addUser(user);
+          }
+          alert("All users processed");
+        },
         async deleteUser() {
-            try {
-                const response = await fetch('/deleteUser', {
+            try {                
+                const response = await fetch('https://cpu.gift.ibuduan.com/admin/deleteUser', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ studentId: this.deleteUserId }),
@@ -125,7 +167,7 @@ export default {
         },
         async addGift() {
             try {
-                const response = await fetch('/addGift', {
+                const response = await fetch('https://cpu.gift.ibuduan.com/admin/addGift', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(this.newGift),
@@ -142,7 +184,7 @@ export default {
         },
         async updateGiftCount() {
             try {
-                const response = await fetch('/updateGiftCount', {
+                const response = await fetch('https://cpu.gift.ibuduan.com/admin/updateGiftCount', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ giftId: this.giftId, newCount: this.newGiftCount }),
@@ -160,7 +202,7 @@ export default {
         },
         async getGiftList() {
             try {
-                const response = await fetch('/getGifts');
+                const response = await fetch('https://cpu.gift.ibuduan.com/admin/getGifts');
                 if (response.ok) {
                     this.gifts = await response.json();
                 } else {
@@ -170,9 +212,21 @@ export default {
                 alert('Error fetching gift list');
             }
         },
+        async getUserList() {
+            try {
+                const response = await fetch('https://cpu.gift.ibuduan.com/admin/listUser');
+                if (response.ok) {
+                    this.gifts = await response.json();
+                } else {
+                    alert('Error fetching user list');
+                }
+            } catch (error) {
+                alert('Error fetching user list');
+            }
+        },
         async getUserLotteryRecords() {
             try {
-                const response = await fetch(`/check/${this.userLotteryId}`);
+                const response = await fetch(`https://cpu.gift.ibuduan.com/gift/check/${this.userLotteryId}`);
                 if (response.ok) {
                     const data = await response.json();
                     this.userRecords = data.gifts;
