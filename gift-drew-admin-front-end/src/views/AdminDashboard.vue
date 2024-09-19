@@ -1,5 +1,9 @@
 <template>
     <div>
+        <h1>Welcome to Admin Page</h1>
+        <button @click="logout">Logout</button>
+    </div>
+    <div>
         <h2>Admin Dashboard</h2>
 
         <h3>Add User</h3>
@@ -66,6 +70,10 @@ export default {
         };
     },
     methods: {
+        logout() {
+            localStorage.removeItem('isAuthenticated');  // 清除认证状态
+            this.$router.push('/login');  // 重定向到登录页
+        },
         async addUser() {
             try {
                 const response = await fetch('/addUser', {

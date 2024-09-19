@@ -8,17 +8,22 @@
 </template>
 
 <script>
+import CryptoJS from 'crypto-js';
+
 export default {
     name: "AdminLogin",
     data() {
         return {
             password: '',
             errorMessage: '',
+            hashedAdminPassword: "ea89ab92577833652c60db16d9969f4cac3620b8a7dac83e1eca2e57aaf268ec",
         };
     },
     methods: {
         login() {
-            if (this.password === 'adminpassword') {
+            const hashedInputPassword = CryptoJS.SHA256(this.password).toString();
+            if (hashedInputPassword === this.hashedAdminPassword) {
+                localStorage.setItem('isAuthenticated', 'true');  // 存储认证状态
                 this.$router.push('/admin');
             } else {
                 this.errorMessage = 'Incorrect password';
@@ -29,7 +34,6 @@ export default {
 </script>
 
 <style>
-/* Add some basic styles */
 .login-container {
     display: flex;
     flex-direction: column;
